@@ -23,19 +23,6 @@ constexpr EnumeratorImpl<Indices...> create_enumerater(const std::index_sequence
 template <template <std::size_t> typename ElementHolder, template <typename...> typename DestinationRange, std::size_t N>
 using Enumerate = typename decltype(create_enumerater(std::make_index_sequence<N>{}))::template Enumerate<ElementHolder, DestinationRange>;
 
-template <std::size_t... Indices>
-struct ZipEnumeratorImpl
-{
-    template <template <std::size_t, typename T> typename ElementHolder, template <typename...> typename DestinationRange, typename... Range>
-    using ZipEnumerate = DestinationRange<ElementHolder<Indices, Range>...>;
-};
-
-template <std::size_t... Indices>
-constexpr ZipEnumeratorImpl<Indices...> create_zip_enumerater(const std::index_sequence<Indices...> &);
-
-template <template <std::size_t, typename T> typename ElementHolder, template <typename...> typename DestinationRange, typename... Range>
-using ZipEnumerate = typename decltype(create_zip_enumerater(std::make_index_sequence<sizeof...(Range)>{}))::template ZipEnumerate<ElementHolder, DestinationRange, Range...>;
-
 template <std::size_t N>
 struct CompileTimeString
 {
