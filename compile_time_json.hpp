@@ -24,23 +24,23 @@ template <template <std::size_t> typename ElementHolder, template <typename...> 
 using Enumerate = typename decltype(create_enumerater(std::make_index_sequence<N>{}))::template Enumerate<ElementHolder, DestinationRange>;
 
 template <std::size_t N>
-struct CompileTimeString
+struct FixedLengthString
 {
     std::array<char, N> string{};
 
-    constexpr CompileTimeString(char const (&i_string)[N])
+    constexpr FixedLengthString(char const (&i_string)[N])
     {
         std::copy(std::begin(i_string), std::end(i_string), string.begin());
     }
 
-    explicit constexpr CompileTimeString(const char *const i_string)
+    explicit constexpr FixedLengthString(const char *const i_string)
     {
         std::copy(i_string, i_string + N, string.begin());
     }
 };
 
 template <auto IValue>
-struct CompileTimeValue
+struct CompileTimeValueHolder
 {
     static constexpr auto Value = IValue;
 };
@@ -57,7 +57,7 @@ enum struct JsonMemberType
     NULL_VALUE,
 };
 
-template <CompileTimeString String>
+template <FixedLengthString String>
 struct ParseContext
 {
     struct WholeInputString
@@ -611,7 +611,7 @@ struct ParseContext
 template <auto StringView>
 auto to_compile_time_string()
 {
-    return CompileTimeString<StringView.end - StringView.begin>{std::string_view{StringView}.data()};
+    return FixedLengthString<StringView.end - StringView.begin>{std::string_view{StringView}.data()};
 }
 
 template <JsonMemberType Type>
@@ -682,7 +682,7 @@ struct Member<JsonMemberType::STRING>
     }
 };
 
-template <CompileTimeString Name, typename Value>
+template <FixedLengthString Name, typename Value>
 struct NamedValue
 {
     Value value;
@@ -767,7 +767,7 @@ struct Json : Members...
         throw "InvalidMemberAccess";
     }
 
-    template <CompileTimeString Name, typename ValueType>
+    template <FixedLengthString Name, typename ValueType>
     static constexpr auto &get_impl(NamedValue<Name, ValueType> &member)
     {
         return member.value;
@@ -779,13 +779,13 @@ struct Json : Members...
         return ((get_impl<Name.Value>(*this)));
     }
 
-    template <CompileTimeString Name>
-    constexpr decltype(auto) operator[](const CompileTimeValue<Name>&)
+    template <FixedLengthString Name>
+    constexpr decltype(auto) operator[](const CompileTimeValueHolder<Name>&)
     {
         return ((get_impl<Name>(*this)));
     }
 
-    template <CompileTimeString Name, typename ValueType>
+    template <FixedLengthString Name, typename ValueType>
     static constexpr const auto &get_impl(const NamedValue<Name, ValueType> &member)
     {
         return member.value;
@@ -797,8 +797,8 @@ struct Json : Members...
         return ((get_impl<Name.Value>(*this)));
     }
 
-    template <CompileTimeString Name>
-    constexpr decltype(auto) operator[](const CompileTimeValue<Name>&) const
+    template <FixedLengthString Name>
+    constexpr decltype(auto) operator[](const CompileTimeValueHolder<Name>&) const
     {
         return ((get_impl<Name>(*this)));
     }
@@ -832,7 +832,7 @@ struct JsonStructureContext
     struct View
     {
         template <auto Member>
-        using JsonMemberStructImpl = NamedValue<CompileTimeString<Member.name.end - Member.name.begin>{std::string_view{Member.name}.data()},
+        using JsonMemberStructImpl = NamedValue<FixedLengthString<Member.name.end - Member.name.begin>{std::string_view{Member.name}.data()},
                                                 std::conditional_t<Member.type == JsonMemberType::OBJECT || Member.type == JsonMemberType::ARRAY, typename StructureSelector<Member.type, View>::template Structure<Begin + Member.object_start + MemberCount, Member.member_count>,
                                                                    MemberSelector<Member>>>;
 
@@ -855,10 +855,10 @@ struct JsonStructureContext
     using JsonStructure = typename View<0, JsonEarlyStructure.children_count>::JsonStructure;
 };
 
-template <CompileTimeString String>
+template <FixedLengthString String>
 constexpr auto operator"" _member()
 {
-    return CompileTimeValue<CompileTimeString<String.string.size() - 1>(String.string.data())>{};
+    return CompileTimeValueHolder<FixedLengthString<String.string.size() - 1>(String.string.data())>{};
 }
 
 template <auto JsonEarlySturcture>
@@ -867,7 +867,7 @@ constexpr auto construct_json()
     return typename JsonStructureContext<JsonEarlySturcture>::JsonStructure{JsonEarlySturcture.members, 0, JsonEarlySturcture.children_count};
 }
 
-template <CompileTimeString String>
+template <FixedLengthString String>
 constexpr auto operator"" _json()
 {
     using Context = ParseContext<String>;
