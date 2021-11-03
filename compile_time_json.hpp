@@ -39,6 +39,12 @@ struct CompileTimeString
     }
 };
 
+template <auto IValue>
+struct CompileTimeValue
+{
+    static constexpr auto Value = IValue;
+};
+
 enum struct JsonMemberType
 {
     BOOL,
@@ -756,14 +762,25 @@ struct Json : Members...
     {
     }
 
+    static constexpr void get_impl(const auto&)
+    {
+        throw "InvalidMemberAccess";
+    }
+
     template <CompileTimeString Name, typename ValueType>
     static constexpr auto &get_impl(NamedValue<Name, ValueType> &member)
     {
         return member.value;
     }
 
-    template <CompileTimeString Name>
+    template <auto Name>
     constexpr decltype(auto) get()
+    {
+        return ((get_impl<Name.Value>(*this)));
+    }
+
+    template <CompileTimeString Name>
+    constexpr decltype(auto) operator[](const CompileTimeValue<Name>&)
     {
         return ((get_impl<Name>(*this)));
     }
@@ -774,8 +791,14 @@ struct Json : Members...
         return member.value;
     }
 
-    template <CompileTimeString Name>
+    template <auto Name>
     constexpr decltype(auto) get() const
+    {
+        return ((get_impl<Name.Value>(*this)));
+    }
+
+    template <CompileTimeString Name>
+    constexpr decltype(auto) operator[](const CompileTimeValue<Name>&) const
     {
         return ((get_impl<Name>(*this)));
     }
@@ -835,7 +858,7 @@ struct JsonStructureContext
 template <CompileTimeString String>
 constexpr auto operator"" _member()
 {
-    return CompileTimeString<String.string.size() - 1>(String.string.data());
+    return CompileTimeValue<CompileTimeString<String.string.size() - 1>(String.string.data())>{};
 }
 
 template <auto JsonEarlySturcture>

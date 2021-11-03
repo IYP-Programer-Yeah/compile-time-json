@@ -3,11 +3,11 @@
 template <auto MyJson>
 void compile_time_test_my_json()
 {
-    static_assert(MyJson.template get<"e_12"_member>().template get<0>().value == 12345);
-    static_assert(MyJson.template get<"e_12sdfsdf"_member>().template get<"e_"_member>().value);
-    static_assert(!MyJson.template get<"e_12sdfsdf"_member>().template get<"e_s"_member>().value);
-    static_assert(MyJson.template get<"e_12sdfsdf"_member>().template get<"e_sdf"_member>().value == -22);
-    static_assert(MyJson.template get<"e_12sdfsdf"_member>().template get<"list"_member>().template get<3>().value == 12354.1234);
+    static_assert(MyJson["e_12"_member].template get<0>().value == 12345);
+    static_assert(MyJson["e_12sdfsdf"_member]["e_"_member].value);
+    static_assert(!MyJson["e_12sdfsdf"_member]["e_s"_member].value);
+    static_assert(MyJson["e_12sdfsdf"_member]["e_sdf"_member].value == -22);
+    static_assert(MyJson["e_12sdfsdf"_member]["list"_member].template get<3>().value == 12354.1234);
 }
 
 int main()
