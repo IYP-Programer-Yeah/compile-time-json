@@ -45,7 +45,7 @@ struct CompileTimeValueHolder
     static constexpr auto Value = IValue;
 };
 
-enum struct JsonMemberType
+enum struct JsonValueType
 {
     BOOL,
     SIGNED_INTEGER,
@@ -94,7 +94,7 @@ struct ParseContext
     struct JsonMember
     {
         StringView name;
-        JsonMemberType type = JsonMemberType::NULL_VALUE;
+        JsonValueType type = JsonValueType::NULL_VALUE;
         StringView value;
         std::size_t object_start{0};
         std::size_t member_count{0};
@@ -395,7 +395,7 @@ struct ParseContext
 
             if (const auto *const success_result = std::get_if<SuccessResult>(&parse_null_result))
             {
-                current_member.type = JsonMemberType::NULL_VALUE;
+                current_member.type = JsonValueType::NULL_VALUE;
                 return parse_null_result;
             }
         }
@@ -417,7 +417,7 @@ struct ParseContext
 
             if (const auto *const success_result = std::get_if<SuccessResult>(&parse_bool_result))
             {
-                current_member.type = JsonMemberType::BOOL;
+                current_member.type = JsonValueType::BOOL;
                 current_member.value = StringView{std::string_view(input.data(), success_result->remaining.data())};
                 return parse_bool_result;
             }
@@ -432,7 +432,7 @@ struct ParseContext
 
             if (const auto *const success_result = std::get_if<SuccessResult>(&parse_json_result))
             {
-                current_member.type = JsonMemberType::OBJECT;
+                current_member.type = JsonValueType::OBJECT;
                 current_member.member_count = final_result_context.children_object_values_length - current_member.object_start;
 
                 std::ranges::copy(std::span(children_object_values.begin(), children_object_values_length), final_result_context.children_object_values.begin() + final_result_context.children_object_values_length);
@@ -453,7 +453,7 @@ struct ParseContext
 
             if (const auto *const success_result = std::get_if<SuccessResult>(&parse_string_result))
             {
-                current_member.type = JsonMemberType::STRING;
+                current_member.type = JsonValueType::STRING;
                 current_member.value = StringView{std::string_view(std::next(input.data()), std::prev(success_result->remaining.data()))};
                 return parse_string_result;
             }
@@ -486,7 +486,7 @@ struct ParseContext
 
             if (const auto *const success_result = std::get_if<SuccessResult>(&parse_array_result))
             {
-                current_member.type = JsonMemberType::ARRAY;
+                current_member.type = JsonValueType::ARRAY;
                 current_member.member_count = final_result_context.children_object_values_length - current_member.object_start;
 
                 std::ranges::copy(std::span(children_object_values.begin(), children_object_values_length), final_result_context.children_object_values.begin() + final_result_context.children_object_values_length);
@@ -502,7 +502,7 @@ struct ParseContext
 
             if (const auto *const success_result = std::get_if<SuccessResult>(&parse_floating_point_starting_with_dot_result))
             {
-                current_member.type = JsonMemberType::DOUBLE;
+                current_member.type = JsonValueType::DOUBLE;
                 current_member.value = StringView{std::string_view(input.data(), success_result->remaining.data())};
                 return parse_floating_point_starting_with_dot_result;
             }
@@ -516,7 +516,7 @@ struct ParseContext
 
             if (const auto *const success_result = std::get_if<SuccessResult>(&parse_floating_point_result))
             {
-                current_member.type = JsonMemberType::DOUBLE;
+                current_member.type = JsonValueType::DOUBLE;
                 current_member.value = StringView{std::string_view(input.data(), success_result->remaining.data())};
                 return parse_floating_point_result;
             }
@@ -527,7 +527,7 @@ struct ParseContext
 
             if (const auto *const success_result = std::get_if<SuccessResult>(&parse_integer_result))
             {
-                current_member.type = JsonMemberType::UNSIGNED_INTEGER;
+                current_member.type = JsonValueType::UNSIGNED_INTEGER;
                 current_member.value = StringView{std::string_view(input.data(), success_result->remaining.data())};
                 return parse_integer_result;
             }
@@ -539,7 +539,7 @@ struct ParseContext
 
             if (const auto *const success_result = std::get_if<SuccessResult>(&parse_integer_result))
             {
-                current_member.type = JsonMemberType::SIGNED_INTEGER;
+                current_member.type = JsonValueType::SIGNED_INTEGER;
                 current_member.value = StringView{std::string_view(input.data(), success_result->remaining.data())};
                 return parse_integer_result;
             }
@@ -585,6 +585,7 @@ struct ParseContext
 
     struct JsonStructure
     {
+        using JsonMemberType = JsonMember;
         std::array<JsonMember, EstimatedMaxResultSize> members;
         std::size_t children_count = 0;
     };
@@ -608,13 +609,7 @@ struct ParseContext
     }
 };
 
-template <auto StringView>
-auto to_compile_time_string()
-{
-    return FixedLengthString<StringView.end - StringView.begin>{std::string_view{StringView}.data()};
-}
-
-template <JsonMemberType Type>
+template <JsonValueType Type>
 struct Member
 {
     struct Void
@@ -629,7 +624,7 @@ struct Member
 };
 
 template <>
-struct Member<JsonMemberType::BOOL>
+struct Member<JsonValueType::BOOL>
 {
     bool value;
     constexpr Member() noexcept = default;
@@ -639,7 +634,7 @@ struct Member<JsonMemberType::BOOL>
 };
 
 template <>
-struct Member<JsonMemberType::SIGNED_INTEGER>
+struct Member<JsonValueType::SIGNED_INTEGER>
 {
     std::intmax_t value;
 
@@ -650,7 +645,7 @@ struct Member<JsonMemberType::SIGNED_INTEGER>
 };
 
 template <>
-struct Member<JsonMemberType::UNSIGNED_INTEGER>
+struct Member<JsonValueType::UNSIGNED_INTEGER>
 {
     std::uintmax_t value;
 
@@ -661,7 +656,7 @@ struct Member<JsonMemberType::UNSIGNED_INTEGER>
 };
 
 template <>
-struct Member<JsonMemberType::DOUBLE>
+struct Member<JsonValueType::DOUBLE>
 {
     double value;
 
@@ -672,7 +667,7 @@ struct Member<JsonMemberType::DOUBLE>
 };
 
 template <>
-struct Member<JsonMemberType::STRING>
+struct Member<JsonValueType::STRING>
 {
     std::string value;
 
@@ -701,9 +696,6 @@ struct IndexedValue : Value
     {
     }
 };
-
-template <auto JsonMember>
-using MemberSelector = Member<JsonMember.type>;
 
 template <typename... Members>
 struct Array : Members...
@@ -804,25 +796,28 @@ struct Json : Members...
     }
 };
 
-template <JsonMemberType, template <std::size_t, std::size_t> typename View>
-struct StructureSelector
+template <JsonValueType ValueType, typename>
+struct MemberTypeSelector
 {
-    template <std::size_t, std::size_t>
-    using Structure = void;
+    using MemberType = Member<ValueType>;
 };
 
-template <template <std::size_t, std::size_t> typename View>
-struct StructureSelector<JsonMemberType::OBJECT, View>
+template <typename StructureMembersView>
+struct MemberTypeSelector<JsonValueType::OBJECT, StructureMembersView>
 {
-    template <std::size_t Begin, std::size_t MemberCount>
-    using Structure = typename View<Begin, MemberCount>::JsonStructure;
+    template <std::size_t, typename StructureMembersView::JsonMemberType Member>
+    using ChildMemberType = NamedValue<FixedLengthString<Member.name.end - Member.name.begin>{std::string_view{Member.name}.data()},
+                                        typename MemberTypeSelector<Member.type, typename StructureMembersView::template NextViewSubView<Member.object_start, Member.member_count>>::MemberType>;
+    using MemberType = typename StructureMembersView::template EnumerateView<ChildMemberType, Json>;
 };
 
-template <template <std::size_t, std::size_t> typename View>
-struct StructureSelector<JsonMemberType::ARRAY, View>
+template <typename StructureMembersView>
+struct MemberTypeSelector<JsonValueType::ARRAY, StructureMembersView>
 {
-    template <std::size_t Begin, std::size_t MemberCount>
-    using Structure = typename View<Begin, MemberCount>::ArrayStructure;
+    template <std::size_t Index, typename  StructureMembersView::JsonMemberType Member>
+    using ChildMemberType = IndexedValue<Index,
+                                        typename MemberTypeSelector<Member.type, typename StructureMembersView::template NextViewSubView<Member.object_start, Member.member_count>>::MemberType>;
+    using MemberType = typename StructureMembersView::template EnumerateView<ChildMemberType, Array>;
 };
 
 template <auto JsonEarlyStructure>
@@ -831,28 +826,22 @@ struct JsonStructureContext
     template <std::size_t Begin, std::size_t MemberCount>
     struct View
     {
-        template <auto Member>
-        using JsonMemberStructImpl = NamedValue<FixedLengthString<Member.name.end - Member.name.begin>{std::string_view{Member.name}.data()},
-                                                std::conditional_t<Member.type == JsonMemberType::OBJECT || Member.type == JsonMemberType::ARRAY, typename StructureSelector<Member.type, View>::template Structure<Begin + Member.object_start + MemberCount, Member.member_count>,
-                                                                   MemberSelector<Member>>>;
+        using JsonMemberType = typename  decltype(JsonEarlyStructure)::JsonMemberType;
+        template <template <std::size_t, JsonMemberType> typename ElementHolder>
+        struct Zipper
+        {
+            template <std::size_t Index>
+            using Zipped = ElementHolder<Index, JsonEarlyStructure.members[Begin + Index]>;
+        };
 
-        template <std::size_t Index>
-        using JsonMemberStruct = JsonMemberStructImpl<JsonEarlyStructure.members[Begin + Index]>;
+        template <template <std::size_t, JsonMemberType> typename ElementHolder, template <typename ...> typename DestinationRange>
+        using EnumerateView = Enumerate<Zipper<ElementHolder>::template Zipped, DestinationRange, MemberCount>;
 
-        template <std::size_t Index, auto Member>
-        using ArrayMemberStructImpl = IndexedValue<Index,
-                                                   std::conditional_t<Member.type == JsonMemberType::OBJECT || Member.type == JsonMemberType::ARRAY, typename StructureSelector<Member.type, View>::template Structure<Begin + Member.object_start + MemberCount, Member.member_count>,
-                                                                      MemberSelector<Member>>>;
-
-        template <std::size_t Index>
-        using ArrayMemberStruct = ArrayMemberStructImpl<Index, JsonEarlyStructure.members[Begin + Index]>;
-
-        using JsonStructure = Enumerate<JsonMemberStruct, Json, MemberCount>;
-
-        using ArrayStructure = Enumerate<ArrayMemberStruct, Array, MemberCount>;
+        template <std::size_t SubViewBegin, std::size_t SubViewMemberCount>
+        using NextViewSubView = View<SubViewBegin + Begin + MemberCount, SubViewMemberCount>;
     };
 
-    using JsonStructure = typename View<0, JsonEarlyStructure.children_count>::JsonStructure;
+    using JsonStructure = typename MemberTypeSelector<JsonValueType::OBJECT, View<0, JsonEarlyStructure.children_count>>::MemberType;
 };
 
 template <FixedLengthString String>
@@ -882,7 +871,7 @@ constexpr void print_json(
 {
     for (const auto &member : children)
     {
-        if (member.type == JsonMemberType::OBJECT)
+        if (member.type == JsonValueType::OBJECT)
         {
             std::cout << std::string_view{member.name} << " with value: {" << std::endl;
 
@@ -891,7 +880,7 @@ constexpr void print_json(
 
             std::cout << "}" << std::endl;
         }
-        else if (member.type == JsonMemberType::ARRAY)
+        else if (member.type == JsonValueType::ARRAY)
         {
             std::cout << "List " << std::string_view{member.name} << " of length " << member.member_count << " with value: [" << std::endl;
 
@@ -900,7 +889,7 @@ constexpr void print_json(
 
             std::cout << "]" << std::endl;
         }
-        else if (member.type == JsonMemberType::NULL_VALUE)
+        else if (member.type == JsonValueType::NULL_VALUE)
         {
             std::cout << std::string_view{member.name} << " with null value." << std::endl;
         }
