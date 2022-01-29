@@ -1,4 +1,4 @@
-#include "compile_time_json.hpp"
+#include "compile_time_json/compile_time_json.hpp"
 
 template <auto MyJson>
 void compile_time_test_my_json()
