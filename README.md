@@ -2,7 +2,7 @@
 
 This library allows you to create C++ structures with standard layout that hold JSON object from compile time JSON string while allowing
 modification of values and reassignment at runtime with constant time access. The JSON objects can also be passed as template parameters
-as the objects are literal types. See the example for further detail on the interface and possible use cases.
+as the objects are literal types. See the example for further details on the interfaces and possible use cases.
 
 ## How to Build
 
